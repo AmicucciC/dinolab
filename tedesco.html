@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="DinoTedesco">
+<title>DinoTedesco 🦕</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; min-height: 100vh; font-family: 'Nunito', sans-serif; overflow-x: hidden; }
+button { cursor: pointer; border: none; font-family: 'Fredoka', sans-serif; }
+button:active { transform: scale(0.96) !important; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-12px); } 40% { transform: translateX(12px); } 60% { transform: translateX(-8px); } 80% { transform: translateX(8px); } }
+@keyframes dinoFloat { from { transform: translateY(0); } to { transform: translateY(-14px); } }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes dinoWalk { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
+@keyframes richtig { 0% { opacity: 0; transform: translate(-50%,-50%) scale(.5); } 30% { opacity: 1; transform: translate(-50%,-50%) scale(1.15); } 70% { opacity: 1; transform: translate(-50%,-50%) scale(1); } 100% { opacity: 0; transform: translate(-50%,-60%) scale(1); } }
+
+.topic { display:flex; align-items:center; gap:12px; width:100%; padding:14px 16px; border-radius:18px; background:white; border:2px solid #eee; text-align:left; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+.topic .em { font-size:30px; width:40px; text-align:center; flex-shrink:0; }
+.topic .t { font-family:'Fredoka',sans-serif; font-size:18px; font-weight:600; color:#2E4057; }
+.topic .s { font-family:'Nunito',sans-serif; font-size:13px; color:#888; font-weight:600; }
+.topic .stars { margin-left:auto; font-size:13px; color:#F9A825; font-weight:700; font-family:'Fredoka',sans-serif; white-space:nowrap; }
+.opt { padding:16px 10px; border-radius:18px; font-size:22px; font-weight:600; color:white; min-width:90px; flex:1; box-shadow:0 4px 12px rgba(0,0,0,.12); }
+.optw { padding:14px 14px; border-radius:16px; font-size:20px; font-weight:600; color:#2E4057; background:white; border:3px solid #e0e0e0; width:100%; margin-bottom:10px; text-transform:none; }
+.word { display:inline-block; padding:8px 10px; margin:4px 3px; border-radius:12px; background:white; border:2px solid #e0e0e0; font-family:'Nunito',sans-serif; font-size:19px; font-weight:700; color:#2E4057; }
+.word.sel { background:#FFF3C4; border-color:#F9A825; }
+.word.ok { background:#D5F5E3; border-color:#27AE60; color:#1E8449; }
+.word.miss { background:#FDEBD0; border-color:#E67E22; color:#A04000; }
+.word.bad { background:#FADBD8; border-color:#E74C3C; color:#922B21; text-decoration:line-through; }
+.speak { background:#f3f0ff; color:#6C5CE7; border-radius:12px; padding:6px 10px; font-size:18px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<canvas id="confetti-canvas" style="position:fixed;inset:0;z-index:1000;pointer-events:none;display:none;"></canvas>
+<div id="flying-dino" style="position:fixed;z-index:1001;pointer-events:none;font-size:64px;display:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.2));"></div>
+<div id="richtig" style="position:fixed;left:50%;top:45%;z-index:1002;pointer-events:none;display:none;font-family:'Fredoka',sans-serif;font-size:44px;font-weight:700;color:#27AE60;background:white;border-radius:24px;padding:16px 28px;box-shadow:0 8px 30px rgba(39,174,96,.35);border:4px solid #27AE60;white-space:nowrap"></div>
+<div id="rule-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:900;padding:20px;animation:fadeIn 0.3s ease;"></div>
+
+<script>
+// =====================================================================
+//  DATI — Kapitel 1 (pagine 1–18)
+// =====================================================================
+
+// --- Articoli (p. 1, 6, 7, 8, 9, 10, 11, 17, 18) ---
+const NOUNS = [
+  // der
+  "der Fisch","der Lehrer","der Palast","der Igel","der Turm","der Fernseher","der Magnet","der Ort","der Tunnel","der Comic",
+  "der Schatten","der Fuchs","der Computer","der Streit","der Text","der Fehler","der Mensch","der Affe","der Käfig","der Irrtum",
+  "der Sprung","der Arbeiter","der Nebel","der Freund","der Ast","der Hof","der Bach","der Vogel","der Garten","der Koch",
+  "der Tiger","der Schnee","der Lastwagen","der Supermarkt","der Einkaufswagen","der Großvater","der Koffer","der Berg","der Zug","der Plan",
+  "der Tisch","der Bäcker","der Schuh","der Fahrer","der Maler","der Rasen","der Müll","der Hund","der Ofen","der Salat","der Tag","der Park","der Zettel","der Pinsel","der Honig","der Arzt","der Ball",
+  // die
+  "die Spielerin","die Mutter","die Reise","die Kamera","die Tochter","die Blume","die Größe","die Butter","die Creme","die Burg",
+  "die Wiese","die Lampe","die Ruhe","die Decke","die Firma","die Seite","die Rast","die Lokomotive","die Soße","die Schokolade",
+  "die Zeit","die Bahn","die Möwe","die Ente","die Tomate","die Hand","die Jacke","die Vase","die Nacht","die Brille",
+  "die Zange","die Panne","die Angst","die Welt","die Kiste","die Beute","die Tür","die Wurst","die Gurke","die Faust",
+  "die Landschaft","die Medizin","die Katze","die Dame","die Banane","die Puppe","die Schule","die Krabbe","die Sonne","die Tafel",
+  // das
+  "das Schaf","das Bett","das Fenster","das Kleid","das Märchen","das Stück","das Flugzeug","das Kino","das Sieb","das Dach",
+  "das Taxi","das Radio","das Quiz","das Pedal","das Boot","das Wort","das Tier","das Heft","das Lied","das Verb",
+  "das Zeichen","das Rezept","das Paket","das Kinn","das Tablett","das Omelett","das Ei","das Haus","das Eis","das Gedicht",
+  "das Foto","das Zelt","das Fest","das Lineal","das Regal","das Spiel","das Geschäft","das Glas","das Schwimmbad","das Hemd",
+  "das Pult","das Buch","das Brot","das Gras","das Obst","das Gemüse","das Dorf","das Telefon","das Rad","das Auto",
+  "das Museum","das Pferd","das Geheimnis","das Erlebnis","das Zeugnis","das Dreimeterbrett","das Strichmännchen","das Aquarium","das Krokodil",
+];
+// Parole su cui ha sbagliato nel quaderno: escono più spesso
+const HARD_NOUNS = ["Schatten","Fuchs","Text","Fehler","Käfig","Irrtum","Magnet","Comic","Turm","Ast","Vogel","Garten","Mensch",
+  "Kino","Dach","Schaf","Märchen","Stück","Butter","Tochter","Kinn","Omelett","Quiz","Radio","Sieb","Pedal","Ort","Zeichen","Basketball","Zug","Hof","Gras"];
+NOUNS.push("der Basketball");
+
+// --- ein / eine (p. 7) ---
+const EIN = ["ein Tier","eine Blume","ein Heft","ein Lied","ein Verb","ein Arbeiter","ein Mensch","ein Affe","ein Fehler","ein Zeichen",
+  "eine Decke","ein Rezept","eine Seite","ein Paket","eine Rast","ein Text","ein Kinn","ein Tablett","ein Sprung","ein Irrtum",
+  "eine Firma","ein Käfig","ein Omelett","ein Haus","eine Puppe","ein Ei"];
+
+// --- Nomen / Verb / Adjektiv (p. 1–4) — [parola, tipo] ---
+const WORTARTEN = [
+  ["Burg","N"],["Wiese","N"],["Wort","N"],["Fuchs","N"],["Computer","N"],["Boot","N"],["Schatten","N"],["Lampe","N"],["Streit","N"],["Ruhe","N"],
+  ["Katze","N"],["Ofen","N"],["Hund","N"],["Eis","N"],["Kinder","N"],["Schnee","N"],["Arzt","N"],["Dame","N"],["Medizin","N"],["Landschaft","N"],
+  ["Klebebilder","N"],["Fußbälle","N"],["Schüler","N"],["Honig","N"],["Strichmännchen","N"],["Wahrheit","N"],["Hoffnung","N"],
+  ["malen","V"],["fließen","V"],["schlafen","V"],["helfen","V"],["kämpfen","V"],["heulen","V"],["tragen","V"],["fahren","V"],["wandern","V"],["wachsen","V"],
+  ["liegt","V"],["leckt","V"],["springen","V"],["verschreibt","V"],["bewundert","V"],["sammelt","V"],["sind","V"],["ist","V"],["malt","V"],["bäckt","V"],
+  ["lebt","V"],["wagte","V"],["hoffen","V"],["landen","V"],["ähneln","V"],
+  ["bunt","A"],["gemütlich","A"],["schmutzig","A"],["lecker","A"],["rot","A"],["müde","A"],["groß","A"],["frisch","A"],["warm","A"],["lieb","A"],
+  ["warmen","A"],["kleine","A"],["süße","A"],["kalten","A"],["kranken","A"],["gute","A"],["schöne","A"],["brav","A"],["fleißig","A"],["klebrig","A"],
+  ["bunte","A"],["süß","A"],["schnell","A"],["gesund","A"],["finster","A"],["berühmt","A"],["wahr","A"],["geheim","A"],
+];
+const HARD_WORTART = ["bewundert","verschreibt","liegt","sind","ist","sammelt","malt","bäckt","schöne","warmen","kleine","bunte"];
+const WORTART_INFO = {
+  N:{label:"Nomen", sub:"Dingwort", color:"#2E86C1", emoji:"🏠"},
+  V:{label:"Verb", sub:"Tuwort", color:"#27AE60", emoji:"🏃"},
+  A:{label:"Adjektiv", sub:"Wiewort", color:"#E67E22", emoji:"🎨"},
+};
+const VERB_BASE = {liegt:"liegen",leckt:"lecken",verschreibt:"verschreiben",bewundert:"bewundern",sammelt:"sammeln",sind:"sein",ist:"sein",malt:"malen",bäckt:"backen",lebt:"leben",wagte:"wagen"};
+
+// --- Frasi: tocca i nomi (p. 2–3, 9, 10, 11, 16). I nomi sono segnati con * ---
+const SENTENCES = [
+  "Die *Katze liegt hinter dem warmen *Ofen.",
+  "Der kleine *Hund leckt das süße *Eis.",
+  "Alle *Kinder springen in den kalten *Schnee.",
+  "Der *Arzt verschreibt der kranken *Dame eine gute *Medizin.",
+  "*Milly bewundert die schöne *Landschaft.",
+  "*Arthur sammelt *Klebebilder, *Fußbälle und *Spielautos.",
+  "Sind die *Schüler brav und fleißig?",
+  "Warum ist *Honig so süß und klebrig?",
+  "*Lena malt kleine bunte *Strichmännchen.",
+  "*Eric ging an zwei *Nachmittagen zur *Musikschule.",
+  "Laut *Plan müsste der *Zug nach halb vier eintreffen.",
+  "Das *Auto hatte eine *Panne und musste abgeschleppt werden.",
+  "Trotz seiner *Angst wagte er den *Sprung vom *Dreimeterbrett.",
+  "Seit drei *Jahren und vier *Monaten lebt er in diesem *Dorf.",
+  "Unser *Großvater bestieg den höchsten *Berg der *Welt.",
+  "Ihr *Koffer war gefüllt mit *Kleidern und *Büchern.",
+  "Alle *Zettel wurden in eine *Kiste geworfen.",
+  "Der *Lastwagen transportierte *Obst und *Gemüse.",
+  "Alle verbrachten den *Tag im schönen *Park.",
+  "Zu *Weihnachten bäckt er *Kekse, *Stollen und *Waffeln.",
+  "Äußerst vorsichtig nähert sich der *Tiger seiner *Beute.",
+  "Wir konnten die *Tür nicht öffnen, so hoch lag der *Schnee.",
+  "Unser *Großvater ist ein großartiger *Koch.",
+  "*Simone und ihre *Mutter fahren in den *Supermarkt.",
+  "Wir wollen nur *Brot, *Gurken und *Wurst kaufen.",
+  "Doch *Simone legt noch viele andere *Sachen in den *Einkaufswagen.",
+  "Das brauchen wir alles nicht, ruft *Mutter.",
+  "Leg das sofort wieder in die *Regale zurück.",
+  "Das findet *Simone ungerecht.",
+  "Sie ballt eine *Faust und schreit: Dann krieg ich aber wenigstens *Kartoffelchips.",
+  "Das *Füttern der *Pferde ist nicht erlaubt.",
+  "Das *Rauchen ist an diesem *Ort verboten.",
+  "Das *Fotografieren im *Museum ist nicht erlaubt.",
+];
+
+// --- -heit / -keit / -nis / -ung (p. 12–13) — [articolo, radice, finale, parola di partenza] ---
+const ENDUNGEN = [
+  ["die","Dunkel","heit","dunkel"],["das","Geheim","nis","geheim"],["die","Lös","ung","lösen"],["die","Freundlich","keit","freundlich"],
+  ["die","Erlaub","nis","erlauben"],["die","Vorbereit","ung","vorbereiten"],["die","Krank","heit","krank"],["die","Möglich","keit","möglich"],
+  ["die","Dumm","heit","dumm"],["die","Heiter","keit","heiter"],["das","Erleb","nis","erleben"],["die","Rechn","ung","rechnen"],
+  ["die","Frei","heit","frei"],["die","Bedeut","ung","bedeuten"],["das","Zeug","nis","zeugen"],["die","Höflich","keit","höflich"],
+  ["die","Land","ung","landen"],["die","Ähnlich","keit","ähneln"],["die","Schnellig","keit","schnell"],["die","Wahr","heit","wahr"],
+  ["die","Gesund","heit","gesund"],["die","Hoffn","ung","hoffen"],["die","Finster","nis","finster"],["die","Berühmt","heit","berühmt"],
+  ["die","Entschuldig","ung","entschuldigen"],
+];
+
+// --- Plurale (p. 17–18) — [singolare con articolo, plurale, distrattore1, distrattore2] ---
+const PLURALS = [
+  ["das Regal","Regale","Regals","Regalen"],["die Lampe","Lampen","Lampe","Lämpe"],["das Geschäft","Geschäfte","Geschafte","Geschäften"],
+  ["das Spiel","Spiele","Spielen","Spieler"],["die Hand","Hände","Hande","Händen"],["die Jacke","Jacken","Jacke","Jäcken"],
+  ["die Vase","Vasen","Vase","Väsen"],["der Vogel","Vögel","Vogeln","Vögeln"],["das Glas","Gläser","Glase","Gläsen"],
+  ["das Haus","Häuser","Hause","Häusen"],["das Schwimmbad","Schwimmbäder","Schwimmbade","Schwimmbäden"],["der Garten","Gärten","Gartens","Gärtner"],
+  ["das Fenster","Fenster","Fenstern","Fenstere"],["der Turm","Türme","Turme","Türmen"],["der Lehrer","Lehrer","Lehrern","Lehrers"],
+  ["der Hof","Höfe","Hofe","Höfen"],["die Nacht","Nächte","Nachte","Nächten"],["der Ast","Äste","Aste","Ästen"],
+  ["das Brot","Brote","Bröte","Broten"],["der Bach","Bäche","Bache","Bächer"],["das Hemd","Hemden","Hemde","Hämden"],
+  ["das Pult","Pulte","Pülte","Pulten"],["das Verb","Verben","Verbe","Verbs"],["das Buch","Bücher","Buche","Büchen"],
+  ["die Decke","Decken","Decke","Däcken"],["das Gras","Gräser","Grase","Gräsen"],["der Ball","Bälle","Balle","Bällen"],
+  ["der Fuchs","Füchse","Fuchse","Füchsen"],
+];
+const HARD_PLURALS = ["der Hof","der Bach","das Gras","der Turm","der Ast","der Vogel","der Garten","das Schwimmbad","das Geschäft"];
+
+// --- Nomen und Verben (p. 14) — [nome con articolo "einem/einer", verbo, vero?] ---
+const MIT_EINEM = [
+  ["einem Koch","kochen",true],["einem Fahrer","fahren",true],["einer Brille","brillen",false],["einem Maler","malen",true],
+  ["einer Zange","zangen",false],["einem Bohrer","bohren",true],["einem Fernseher","fernsehen",true],["einem Pinsel","pinseln",true],
+  ["einem Telefon","telefonieren",true],["einem Tisch","tischen",false],["einem Bäcker","backen",true],["einem Rad","raden",false],
+  ["einem Spiel","spielen",true],["einem Arbeiter","arbeiten",true],["einem Schuh","schuhen",false],
+  ["einem Kamm","kämmen",true],["einer Schaufel","schaufeln",true],["einem Stuhl","stuhlen",false],["einer Lampe","lampen",false],
+];
+// (p. 15) — [verbo, nome giusto, distrattori...]
+const VERB_ZU_NOMEN = [
+  ["kochen","der Koch","das Koch","der Köch"],["laufen","der Läufer","der Laufer","die Läufer"],["lesen","der Leser","das Leser","der Läser"],
+  ["wohnen","die Wohnung","der Wohnung","die Wohnheit"],["helfen","die Hilfe","der Hilfe","die Helfung"],["schießen","der Schuss","die Schuss","der Schieß"],
+  ["senden","die Sendung","der Sendung","die Sendheit"],["fahren","der Fahrer","das Fahrer","der Fährer"],["kämmen","der Kamm","die Kamm","der Kämm"],
+  ["schaufeln","die Schaufel","der Schaufel","die Schäufel"],["schließen","das Schloss","der Schloss","die Schließ"],["reiten","der Reiter","das Reiter","die Reitung"],
+  ["sprechen","die Sprache","der Sprache","die Sprechung"],["verletzen","die Verletzung","der Verletzung","die Verletzheit"],
+  ["arbeiten","die Arbeit","der Arbeit","die Arbeitung"],["starten","der Start","die Start","die Startung"],["verkaufen","der Verkäufer","der Verkaufer","die Verkäufer"],
+];
+// (p. 16) — [frase originale, frase con ___, risposta, distrattori]
+const NOMINAL = [
+  ["Die Pferde darf man nicht füttern.","Das ___ der Pferde ist nicht erlaubt.","Füttern","füttern","Fütterung der"],
+  ["Den Rasen darf man nicht betreten.","Das ___ des Rasens ist nicht erlaubt.","Betreten","betreten","Betretten"],
+  ["Essen darf man nicht mitbringen.","Das ___ des Essens ist nicht erlaubt.","Mitbringen","mitbringen","Mitbrinken"],
+  ["An diesem Ort darf man nicht rauchen.","Das ___ an diesem Ort ist nicht erlaubt.","Rauchen","rauchen","Rauchens"],
+  ["Hier darf man keinen Müll wegwerfen.","Das ___ des Mülls ist nicht erlaubt.","Wegwerfen","wegwerfen","Wekwerfen"],
+  ["Im Museum darf man nicht fotografieren.","Das ___ im Museum ist nicht erlaubt.","Fotografieren","fotografieren","Fotographiren"],
+  ["Man darf die Baustelle nicht betreten.","Das ___ der Baustelle ist nicht erlaubt.","Betreten","betreten","Betrehten"],
+];
+
+// =====================================================================
+//  ARGOMENTI E REGOLE
+// =====================================================================
+const TOPICS = [
+  {id:"mix", emoji:"🦖", title:"Mix di tutto", sub:"Ripasso completo fino a pag. 18", color:"#6C5CE7"},
+  {id:"artikel", emoji:"🎯", title:"der, die oder das?", sub:"Articoli · pag. 6–7", color:"#2E86C1"},
+  {id:"wortart", emoji:"🧩", title:"Nomen, Verb, Adjektiv", sub:"Che tipo di parola è? · pag. 1–4", color:"#27AE60"},
+  {id:"gross", emoji:"🔠", title:"Trova i Nomen", sub:"Maiuscole · pag. 8–11", color:"#E67E22"},
+  {id:"endung", emoji:"🔚", title:"-heit -keit -nis -ung", sub:"Finali dei nomi · pag. 12–13", color:"#8E44AD"},
+  {id:"verben", emoji:"🔁", title:"Nomen und Verben", sub:"Dal verbo al nome · pag. 14–16", color:"#16A085"},
+  {id:"plural", emoji:"👯", title:"Einzahl & Mehrzahl", sub:"Il plurale · pag. 17–18", color:"#C0392B"},
+];
+const ART_COLOR = {der:"#2E86C1", die:"#E74C3C", das:"#27AE60"};
+
+const RULES = {
+  artikel: { emoji:"🎯", title:"der, die oder das?", color:"#2E86C1",
+    text:"Ogni Nomen ha il suo articolo: impara sempre il nome <b>insieme</b> all'articolo!<br><br>Trucchi:<br>• <b>-ung, -heit, -keit, -in</b> → sempre <b style='color:#E74C3C'>die</b><br>• <b>-chen</b> → sempre <b style='color:#27AE60'>das</b><br>• persone che fanno qualcosa in <b>-er</b> (Lehrer, Bäcker) → <b style='color:#2E86C1'>der</b>" },
+  ein: { emoji:"☝️", title:"ein / eine → der, die, das", color:"#2E86C1",
+    text:"<b>eine</b> → sempre <b style='color:#E74C3C'>die</b><br><b>ein</b> → può essere <b style='color:#2E86C1'>der</b> oppure <b style='color:#27AE60'>das</b>: devi ricordarti la parola!" },
+  wortart: { emoji:"🧩", title:"Nomen, Verb o Adjektiv?", color:"#27AE60",
+    text:"🏠 <b>Nomen</b> (Dingwort): una cosa, un animale, una persona, un sentimento. Può avere <b>der/die/das</b> davanti.<br>🏃 <b>Verb</b> (Tuwort): quello che si <b>fa</b>. Prova: <i>ich …, er …</i> (er <b>malt</b>, er <b>bewundert</b>).<br>🎨 <b>Adjektiv</b> (Wiewort): <b>com'è</b> una cosa. Prova: <i>Der Hund ist …</i>" },
+  gross: { emoji:"🔠", title:"I Nomen si scrivono GRANDI!", color:"#E67E22",
+    text:"In tedesco <b>tutti i Nomen</b> cominciano con la lettera maiuscola, anche in mezzo alla frase.<br><br>Prova: posso metterci <b>der, die, das</b> davanti? Allora è un Nomen!<br>Anche i nomi di persona (Simone, Eric) e i verbi con <b>das</b> davanti (das <b>F</b>üttern) sono Nomen." },
+  endung: { emoji:"🔚", title:"-heit, -keit, -nis, -ung", color:"#8E44AD",
+    text:"• <b>-ung</b> viene spesso da un <b>verbo</b>: lösen → die Lös<b>ung</b>, landen → die Land<b>ung</b><br>• <b>-keit</b> dopo <b>-lich, -ig</b>: freundlich → die Freundlich<b>keit</b><br>• <b>-heit</b> dopo parole corte: frei → die Frei<b>heit</b>, krank → die Krank<b>heit</b><br>• <b>-nis</b>: das Geheim<b>nis</b>, das Erleb<b>nis</b>, die Erlaub<b>nis</b><br><br>-ung, -heit, -keit → sempre <b style='color:#E74C3C'>die</b>!" },
+  mitEinem: { emoji:"🔨", title:"Nomen und Verben", color:"#16A085",
+    text:"Da molti Nomen nasce un verbo: der Pinsel → <b>pinseln</b>, der Maler → <b>malen</b>.<br>Ma non sempre! Con un Tisch non si può \"tischen\" e con una Brille non si può \"brillen\". 😄" },
+  verbNomen: { emoji:"🔁", title:"Dal verbo al Nomen", color:"#16A085",
+    text:"Da un verbo si possono fare dei Nomen:<br>verkaufen → <b>der Verkäufer</b>, <b>der Verkauf</b><br>wohnen → <b>die Wohnung</b><br>Attenzione all'articolo giusto e alla <b>lettera maiuscola</b>!" },
+  nominal: { emoji:"🚫", title:"Verbo che diventa Nomen", color:"#16A085",
+    text:"Se davanti al verbo c'è <b>das</b>, il verbo diventa un Nomen e si scrive <b>GRANDE</b>:<br>füttern → <b>das Füttern</b><br>rauchen → <b>das Rauchen</b>" },
+  plural: { emoji:"👯", title:"Die Mehrzahl", color:"#C0392B",
+    text:"Al plurale l'articolo è <b>sempre die</b>!<br>Spesso la parola cambia: <b>a → ä</b>, <b>o → ö</b>, <b>u → ü</b><br>der Ball → die B<b>ä</b>lle · der Hof → die H<b>ö</b>fe · der Fuchs → die F<b>ü</b>chse<br>Alcune non cambiano: das Fenster → die Fenster" },
+  singular: { emoji:"☝️", title:"Die Einzahl", color:"#C0392B",
+    text:"Al plurale è sempre <b>die</b>, ma al singolare devi ricordarti l'articolo vero!<br>die Türme → <b>der</b> Turm · die Vögel → <b>der</b> Vogel · die Gärten → <b>der</b> Garten" },
+};
+
+// =====================================================================
+//  STATO
+// =====================================================================
+const TOTAL = 10;
+const DINOS = ["🦕","🦖"];
+const CELEB_ITEMS = ["🦕","🦖","⭐","🌟","✨","🎉","🏆"];
+const RICHTIG = ["Richtig! ✨","Super! 🦖","Toll! ⭐","Prima! 🎉","Klasse! 🌟","Genau! ✅"];
+const BGS = [
+  "linear-gradient(135deg,#a8e6cf 0%,#dcedc1 50%,#ffd3b6 100%)",
+  "linear-gradient(135deg,#f6d365 0%,#fda085 100%)",
+  "linear-gradient(135deg,#a1c4fd 0%,#c2e9fb 100%)",
+  "linear-gradient(135deg,#fbc2eb 0%,#a6c1ee 100%)",
+];
+const STORE = "dino-tedesco-v1";
+
+let state = "menu";       // menu | playing | completed
+let topic = null;
+let queue = [];           // domande da fare
+let pos = 0;
+let errors = 0;
+let requeued = new Set();
+let answered = false;     // per le domande a frase
+let selected = new Set();
+let todayDino = DINOS[Math.floor(Math.random()*DINOS.length)];
+let bg = BGS[Math.floor(Math.random()*BGS.length)];
+let data = loadData();
+
+const $ = s => document.querySelector(s);
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const today = () => new Date().toISOString().slice(0,10);
+const yesterday = () => { const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); };
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+
+function loadData() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(STORE)); } catch(e) {}
+  d = d || {};
+  d.stars = d.stars || {};       // migliori stelle per argomento
+  d.mistakes = d.mistakes || {}; // chiave -> quante volte sbagliata
+  d.streak = d.streak || 0;
+  d.lastDate = d.lastDate || null;
+  d.rounds = d.rounds || 0;
+  return d;
+}
+function saveData() { try { localStorage.setItem(STORE, JSON.stringify(data)); } catch(e) {} }
+function currentStreak() {
+  if (data.lastDate===today() || data.lastDate===yesterday()) return data.streak;
+  return 0;
+}
+
+// --- Voce tedesca ---
+function speak(text) {
+  try {
+    if (!window.speechSynthesis) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "de-DE"; u.rate = 0.85;
+    const v = speechSynthesis.getVoices().find(v=>v.lang && v.lang.startsWith("de"));
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch(e) {}
+}
+
+// =====================================================================
+//  GENERATORI DI DOMANDE
+// =====================================================================
+function splitArt(s){ const i=s.indexOf(" "); return [s.slice(0,i), s.slice(i+1)]; }
+
+function qArtikel(entry) {
+  const [art, noun] = splitArt(entry);
+  return { kind:"choice", key:"art:"+noun, topic:"artikel", rule:"artikel",
+    ask:"Quale articolo?", big:`<span style="color:#bbb">___</span> ${esc(noun)}`, say:entry,
+    options:["der","die","das"].map(a=>({label:a, value:a, color:ART_COLOR[a]})), answer:art, row:true,
+    solution:`<b style="color:${ART_COLOR[art]}">${art}</b> ${esc(noun)}` };
+}
+function qEin(entry) {
+  const [ein, noun] = splitArt(entry);
+  const full = NOUNS.find(n=>splitArt(n)[1]===noun);
+  const art = full ? splitArt(full)[0] : (ein==="eine"?"die":"das");
+  return { kind:"choice", key:"art:"+noun, topic:"artikel", rule:"ein",
+    ask:"Cambia l'articolo indeterminativo con quello determinativo", big:`${esc(entry)} → <span style="color:#bbb">___</span> ${esc(noun)}`, say:entry,
+    options:["der","die","das"].map(a=>({label:a, value:a, color:ART_COLOR[a]})), answer:art, row:true,
+    solution:`${esc(entry)} → <b style="color:${ART_COLOR[art]}">${art}</b> ${esc(noun)}` };
+}
+function qWortart([w,t]) {
+  return { kind:"choice", key:"wa:"+w, topic:"wortart", rule:"wortart",
+    ask:"Che tipo di parola è?", big:esc(w.toLowerCase()), say:w, hint:"(è scritta tutta in minuscolo apposta 😉)",
+    options:["N","V","A"].map(k=>({label:`${WORTART_INFO[k].emoji} ${WORTART_INFO[k].label}`, value:k, color:WORTART_INFO[k].color})),
+    answer:t, row:false,
+    solution:`<b>${esc(w)}</b> è un <b style="color:${WORTART_INFO[t].color}">${WORTART_INFO[t].label}</b>${t==="V"&&VERB_BASE[w]?` (da <i>${VERB_BASE[w]}</i>)`:""}${t==="N"?" → si scrive con la maiuscola!":""}` };
+}
+function qGross(s) {
+  const tokens = s.split(" ").map(tok => {
+    const noun = tok.startsWith("*");
+    const raw = noun ? tok.slice(1) : tok;
+    const m = raw.match(/^([\wÄÖÜäöüß]+)(.*)$/);
+    return { word: m ? m[1] : raw, punct: m ? m[2] : "", noun };
+  });
+  return { kind:"tap", key:"gr:"+s.slice(0,30), topic:"gross", rule:"gross", tokens, say:s.replace(/\*/g,"") };
+}
+function qEndung([art, stem, end, base]) {
+  return { kind:"choice", key:"en:"+stem, topic:"endung", rule:"endung",
+    ask:"Quale finale ci vuole?", big:`<span style="font-size:20px;color:#888">${esc(base)} →</span><br>${art} ${esc(stem)}<span style="color:#bbb">___</span>`, say:`${art} ${stem}${end}`,
+    options:shuffle(["heit","keit","nis","ung"]).map(e=>({label:"-"+e, value:e, color:"#8E44AD"})), answer:end, row:true,
+    solution:`${art} ${esc(stem)}<b style="color:#8E44AD">${end}</b>` };
+}
+function qPlural([sing, pl, d1, d2]) {
+  if (Math.random() < 0.6) {
+    return { kind:"choice", key:"pl:"+sing, topic:"plural", rule:"plural",
+      ask:"Qual è la Mehrzahl (plurale)?", big:`${esc(sing)} → die <span style="color:#bbb">___</span>`, say:`${sing}, die ${pl}`,
+      options:shuffle([pl,d1,d2]).map(x=>({label:"die "+x, value:x})), answer:pl, row:false, words:true,
+      solution:`${esc(sing)} → <b style="color:#C0392B">die ${esc(pl)}</b>` };
+  }
+  const [art, noun] = splitArt(sing);
+  return { kind:"choice", key:"pl:"+sing, topic:"plural", rule:"singular",
+    ask:"Qual è la Einzahl (singolare)?", big:`die ${esc(pl)} → <span style="color:#bbb">___</span> ${esc(noun)}`, say:`die ${pl}, ${sing}`,
+    options:["der","die","das"].map(a=>({label:a+" "+noun, value:a, color:ART_COLOR[a]})), answer:art, row:false,
+    solution:`die ${esc(pl)} → <b style="color:${ART_COLOR[art]}">${art}</b> ${esc(noun)}` };
+}
+function qMitEinem([n, v, ok]) {
+  return { kind:"choice", key:"me:"+v, topic:"verben", rule:"mitEinem",
+    ask:"Giusto o sbagliato?", big:`<span style="font-size:24px">Mit ${esc(n)} kann man <b>${esc(v)}</b>?</span>`, say:`Mit ${n} kann man ${v}?`,
+    options:[{label:"✔ Ja", value:true, color:"#27AE60"},{label:"✘ Nein", value:false, color:"#E74C3C"}], answer:ok, row:true,
+    solution: ok ? `<b style="color:#27AE60">Ja!</b> Mit ${esc(n)} kann man ${esc(v)}.` : `<b style="color:#E74C3C">Nein!</b> „${esc(v)}" non esiste!` };
+}
+function qVerbNomen([v, good, ...bad]) {
+  return { kind:"choice", key:"vn:"+v, topic:"verben", rule:"verbNomen",
+    ask:"Quale Nomen viene da questo verbo?", big:esc(v), say:`${v}, ${good}`,
+    options:shuffle([good,...bad]).map(x=>({label:x, value:x})), answer:good, row:false, words:true,
+    solution:`${esc(v)} → <b style="color:#16A085">${esc(good)}</b>` };
+}
+function qNominal([orig, gap, good, ...bad]) {
+  return { kind:"choice", key:"nm:"+orig, topic:"verben", rule:"nominal",
+    ask:"Riscrivi la frase: quale parola ci va?", big:`<span style="font-size:17px;color:#888;font-weight:600">${esc(orig)}</span><br><span style="font-size:22px">${esc(gap).replace("___",'<span style="color:#bbb">_____</span>')}</span>`, say:gap.replace("___",good),
+    options:shuffle([good,...bad]).map(x=>({label:x, value:x})), answer:good, row:false, words:true,
+    solution:esc(gap).replace("___",`<b style="color:#16A085">${esc(good)}</b>`) };
+}
+
+// Pesca: privilegia le parole sbagliate prima (dati salvati) e quelle difficili dal quaderno
+function weightedPick(list, keyOf, hardTest, n) {
+  const scored = list.map(it => {
+    const k = keyOf(it);
+    let w = 1 + (data.mistakes[k]||0) * 3 + (hardTest && hardTest(it) ? 2 : 0);
+    return {it, r: Math.random() * w};
+  });
+  return scored.sort((a,b)=>b.r-a.r).slice(0,n).map(x=>x.it);
+}
+
+function genTopic(id, n) {
+  switch(id) {
+    case "artikel": {
+      const nE = Math.round(n*0.3);
+      const a = weightedPick(NOUNS, e=>"art:"+splitArt(e)[1], e=>HARD_NOUNS.includes(splitArt(e)[1]), n-nE).map(qArtikel);
+      const b = weightedPick(EIN, e=>"art:"+splitArt(e)[1], e=>HARD_NOUNS.includes(splitArt(e)[1]), nE).map(qEin);
+      return [...a,...b];
+    }
+    case "wortart": return weightedPick(WORTARTEN, e=>"wa:"+e[0], e=>HARD_WORTART.includes(e[0]), n).map(qWortart);
+    case "gross": return weightedPick(SENTENCES, s=>"gr:"+s.slice(0,30), null, n).map(qGross);
+    case "endung": return weightedPick(ENDUNGEN, e=>"en:"+e[1], null, n).map(qEndung);
+    case "plural": return weightedPick(PLURALS, e=>"pl:"+e[0], e=>HARD_PLURALS.includes(e[0]), n).map(qPlural);
+    case "verben": {
+      const n1 = Math.ceil(n*0.4), n2 = Math.ceil(n*0.3), n3 = n-n1-n2;
+      return [
+        ...weightedPick(MIT_EINEM, e=>"me:"+e[1], null, n1).map(qMitEinem),
+        ...weightedPick(VERB_ZU_NOMEN, e=>"vn:"+e[0], null, n2).map(qVerbNomen),
+        ...weightedPick(NOMINAL, e=>"nm:"+e[0], null, n3).map(qNominal),
+      ];
+    }
+  }
+  return [];
+}
+function genRound(id) {
+  if (id === "mix") {
+    const parts = {artikel:3, wortart:2, gross:1, endung:1, verben:1, plural:2};
+    let all = [];
+    for (const [t,n] of Object.entries(parts)) all = all.concat(genTopic(t,n));
+    return shuffle(all);
+  }
+  return shuffle(genTopic(id, TOTAL));
+}
+
+// =====================================================================
+//  ANIMAZIONI
+// =====================================================================
+function flashRichtig(cb) {
+  const el = $("#richtig");
+  el.textContent = pick(RICHTIG);
+  el.style.display = "block";
+  el.style.animation = "none"; void el.offsetWidth;
+  el.style.animation = "richtig .9s ease forwards";
+  setTimeout(()=>{ el.style.display="none"; cb(); }, 900);
+}
+
+function celebrate(cb) {
+  const canvas = $("#confetti-canvas");
+  canvas.style.display="block";
+  const ctx = canvas.getContext("2d");
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  const colors=["#FF6B6B","#4ECDC4","#45B7D1","#96CEB4","#FFEAA7","#DDA0DD","#FF9FF3","#54A0FF"];
+  const parts=[];
+  for(let i=0;i<120;i++) parts.push({
+    x:canvas.width/2+(Math.random()-.5)*200, y:canvas.height/2,
+    vx:(Math.random()-.5)*16, vy:-Math.random()*18-4,
+    sz:Math.random()*10+4, c:pick(colors),
+    sh:pick(["c","r","s","t"]), rot:Math.random()*Math.PI*2,
+    rs:(Math.random()-.5)*.3, g:.25+Math.random()*.15, life:1, dec:.008+Math.random()*.006
+  });
+  const fd=$("#flying-dino");
+  fd.textContent=pick(CELEB_ITEMS);
+  fd.style.display="block"; fd.style.left="-80px"; fd.style.top=(canvas.height*.3+Math.random()*100)+"px";
+  let fx=-80, frame=0;
+  function anim() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let alive=false;
+    for(const p of parts) {
+      if(p.life<=0)continue; alive=true;
+      p.x+=p.vx; p.vy+=p.g; p.y+=p.vy; p.vx*=.99; p.rot+=p.rs; p.life-=p.dec;
+      ctx.save(); ctx.globalAlpha=Math.max(0,p.life); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=p.c;
+      if(p.sh==="c"){ctx.beginPath();ctx.arc(0,0,p.sz,0,Math.PI*2);ctx.fill();}
+      else if(p.sh==="r"){ctx.fillRect(-p.sz/2,-p.sz/2,p.sz,p.sz);}
+      else if(p.sh==="s"){drawStar(ctx,0,0,5,p.sz,p.sz/2);ctx.fill();}
+      else{ctx.beginPath();ctx.moveTo(0,-p.sz);ctx.lineTo(p.sz,p.sz);ctx.lineTo(-p.sz,p.sz);ctx.closePath();ctx.fill();}
+      ctx.restore();
+    }
+    fx+=5; fd.style.left=fx+"px";
+    fd.style.animation = "dinoFloat 0.5s ease-in-out infinite alternate";
+    frame++;
+    if(alive||frame<120) requestAnimationFrame(anim);
+    else { canvas.style.display="none"; fd.style.display="none"; cb(); }
+  }
+  requestAnimationFrame(anim);
+}
+function drawStar(ctx,cx,cy,sp,oR,iR) {
+  let rot=(Math.PI/2)*3; const step=Math.PI/sp;
+  ctx.beginPath(); ctx.moveTo(cx,cy-oR);
+  for(let i=0;i<sp;i++){ctx.lineTo(cx+Math.cos(rot)*oR,cy+Math.sin(rot)*oR);rot+=step;ctx.lineTo(cx+Math.cos(rot)*iR,cy+Math.sin(rot)*iR);rot+=step;}
+  ctx.lineTo(cx,cy-oR); ctx.closePath();
+}
+
+function showRule(key, solutionHtml, say, cb) {
+  const r = RULES[key];
+  const ov = $("#rule-overlay");
+  ov.style.display="flex";
+  ov.innerHTML=`
+    <div style="background:white;border-radius:24px;padding:26px;max-width:500px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 8px 32px ${r.color}44;border:4px solid ${r.color};animation:popIn .4s cubic-bezier(.34,1.56,.64,1);">
+      <div style="font-size:44px;text-align:center;margin-bottom:6px">${r.emoji}</div>
+      <h2 style="font-family:'Fredoka',sans-serif;color:${r.color};text-align:center;margin:0 0 14px;font-size:22px">${r.title}</h2>
+      <div style="background:#f8f8f8;border-radius:14px;padding:14px 16px;font-family:'Fredoka',sans-serif;font-size:21px;font-weight:500;color:#333;text-align:center;margin-bottom:16px;line-height:1.5">
+        <div style="font-family:'Nunito',sans-serif;font-size:13px;color:#999;font-weight:700;margin-bottom:4px">RISPOSTA GIUSTA</div>
+        ${solutionHtml}
+        ${say?`<div style="margin-top:8px"><button id="rule-say" class="speak">🔊 Ascolta</button></div>`:""}
+      </div>
+      <p style="font-family:'Nunito',sans-serif;font-size:16px;line-height:1.6;color:#444;margin:0 0 20px">${r.text}</p>
+      <button id="rule-ok" style="display:block;width:100%;padding:14px;border-radius:16px;background:${r.color};color:white;font-size:20px;font-weight:600;box-shadow:0 4px 12px ${r.color}66">Ho capito! ✨</button>
+    </div>`;
+  const rs = $("#rule-say"); if (rs) rs.onclick = () => speak(say);
+  $("#rule-ok").onclick = () => { ov.style.display="none"; cb(); };
+}
+
+// =====================================================================
+//  LOGICA
+// =====================================================================
+function start(id) {
+  topic = TOPICS.find(t=>t.id===id);
+  queue = genRound(id);
+  pos = 0; errors = 0; requeued = new Set(); answered = false; selected = new Set();
+  state = "playing";
+  render();
+}
+
+function markMistake(q) { data.mistakes[q.key] = (data.mistakes[q.key]||0) + 1; saveData(); }
+function markRight(q) {
+  if (data.mistakes[q.key]) { data.mistakes[q.key] = Math.max(0, data.mistakes[q.key]-1); if(!data.mistakes[q.key]) delete data.mistakes[q.key]; saveData(); }
+}
+
+function wrong(q, solution) {
+  errors++;
+  markMistake(q);
+  // la domanda sbagliata torna alla fine (una volta sola)
+  if (!requeued.has(q.key)) { requeued.add(q.key); queue.push(q); }
+  const card = $("#qcard");
+  if (card) { card.style.animation="shake .5s ease-in-out"; }
+  setTimeout(()=> showRule(q.rule, solution, q.say, next), 550);
+}
+function right(q) {
+  markRight(q);
+  speak(q.say);
+  flashRichtig(next);
+}
+function next() {
+  pos++; answered = false; selected = new Set();
+  if (pos >= queue.length) finish(); else render();
+}
+function finish() {
+  const stars = errors===0 ? 3 : errors<=2 ? 2 : 1;
+  data.stars[topic.id] = Math.max(data.stars[topic.id]||0, stars);
+  if (data.lastDate !== today()) {
+    data.streak = data.lastDate===yesterday() ? data.streak+1 : 1;
+    data.lastDate = today();
+  }
+  data.rounds++;
+  saveData();
+  state = "completed";
+  celebrate(()=>{});
+  render();
+}
+
+function choose(value) {
+  const q = queue[pos];
+  if (answered) return;
+  answered = true;
+  if (value === q.answer) right(q); else wrong(q, q.solution);
+}
+
+function checkTap() {
+  const q = queue[pos];
+  if (answered) return;
+  answered = true;
+  let ok = true;
+  q.tokens.forEach((t,i) => { if (t.noun !== selected.has(i)) ok = false; });
+  // mostra la soluzione direttamente nella frase
+  q.tokens.forEach((t,i) => {
+    const el = document.querySelector(`[data-w="${i}"]`);
+    if (!el) return;
+    el.classList.remove("sel");
+    if (t.noun) { el.textContent = t.word + t.punct; el.classList.add(selected.has(i) ? "ok" : "miss"); }
+    else if (selected.has(i)) el.classList.add("bad");
+    else if (i===0) el.textContent = t.word + t.punct;
+  });
+  const fixed = q.tokens.map(t=>t.noun?`<b style="color:#E67E22">${esc(t.word)}</b>${esc(t.punct)}`:esc(t.word+t.punct)).join(" ");
+  if (ok) setTimeout(()=>right(q), 500);
+  else setTimeout(()=>wrong(q, `<span style="font-size:18px;line-height:1.6">${fixed}</span>`), 900);
+}
+
+// =====================================================================
+//  RENDER
+// =====================================================================
+function render() {
+  const app = $("#app");
+  document.body.style.background = bg;
+  const streak = currentStreak();
+
+  const header = `<div style="width:100%;max-width:500px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;animation:slideDown .4s ease">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:36px;animation:dinoWalk 1s ease-in-out infinite">${todayDino}</span>
+      <div><div style="font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;color:#2E4057">DinoTedesco</div><div style="font-size:13px;color:#666;font-weight:600">Kapitel 1 · Nomen</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.8);border-radius:12px;padding:6px 10px"><span style="font-size:18px">🔥</span><span style="font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:${streak>0?'#E74C3C':'#999'}">${streak}</span></div>
+  </div>`;
+
+  let content = "";
+
+  if (state === "menu") {
+    const nMist = Object.keys(data.mistakes).length;
+    content = `<div style="animation:fadeIn .4s ease">
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="font-size:56px;animation:bounce 2s ease infinite">🦕</div>
+        <h1 style="font-family:'Fredoka',sans-serif;font-size:26px;color:#2E4057;margin:6px 0 4px">Hallo Champion!</h1>
+        <p style="font-size:16px;color:#666;margin:0">Cosa ripassiamo oggi per la verifica?</p>
+        ${nMist?`<p style="font-size:13px;color:#E67E22;font-weight:700;margin:8px 0 0">🎯 ${nMist} parol${nMist===1?'a':'e'} da ripassare: usciranno più spesso!</p>`:""}
+      </div>
+      ${TOPICS.map(t=>{
+        const s = data.stars[t.id]||0;
+        return `<button class="topic" data-topic="${t.id}" style="${t.id==='mix'?`border-color:${t.color};background:#F3F0FF`:''}">
+          <span class="em">${t.emoji}</span>
+          <span><div class="t" style="color:${t.color}">${t.title}</div><div class="s">${t.sub}</div></span>
+          <span class="stars">${s?"⭐".repeat(s):""}</span>
+        </button>`;
+      }).join("")}
+    </div>`;
+  }
+
+  else if (state === "playing") {
+    const q = queue[pos];
+    const total = queue.length;
+    const progress = pos / total;
+    let body = "";
+
+    if (q.kind === "choice") {
+      const opts = q.options.map((o,i)=> q.color || o.color
+        ? `<button class="opt" data-opt="${i}" style="background:${o.color};box-shadow:0 4px 12px ${o.color}55">${esc(o.label)}</button>`
+        : `<button class="optw" data-opt="${i}">${esc(o.label)}</button>`).join("");
+      body = `
+        <div style="font-family:'Nunito',sans-serif;font-size:16px;color:#888;font-weight:700;text-align:center;margin-bottom:14px">${q.ask}</div>
+        <div style="font-family:'Fredoka',sans-serif;font-size:36px;font-weight:600;color:#2E4057;text-align:center;line-height:1.3;margin-bottom:8px">${q.big}</div>
+        ${q.hint?`<div style="text-align:center;font-size:13px;color:#aaa;font-weight:600;margin-bottom:8px">${q.hint}</div>`:""}
+        <div style="height:18px"></div>
+        <div style="display:flex;${q.row?'flex-direction:row;gap:10px':'flex-direction:column;gap:10px'};justify-content:center">${opts}</div>`;
+    } else if (q.kind === "tap") {
+      const words = q.tokens.map((t,i)=>`<button class="word${selected.has(i)?' sel':''}" data-w="${i}">${esc(t.word.toLowerCase()+t.punct)}</button>`).join("");
+      body = `
+        <div style="font-family:'Nunito',sans-serif;font-size:16px;color:#888;font-weight:700;text-align:center;margin-bottom:6px">Tocca tutti i <b style="color:#E67E22">Nomen</b>!</div>
+        <div style="text-align:center;font-size:13px;color:#aaa;font-weight:600;margin-bottom:14px">Quali parole vanno scritte con la maiuscola?</div>
+        <div style="text-align:center;margin-bottom:22px;line-height:1.2">${words}</div>
+        <button id="btn-check" style="display:block;width:100%;padding:14px;border-radius:16px;background:linear-gradient(135deg,#E67E22,#F5B041);color:white;font-size:20px;font-weight:600;box-shadow:0 4px 16px #E67E2244">Controlla ✓</button>`;
+    }
+
+    content = `
+      <div style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-family:'Fredoka',sans-serif;font-size:15px;color:#888">
+          <button id="btn-home" style="background:none;color:#888;font-size:15px;padding:0">← Menu</button>
+          <span>${topic.emoji} ${pos+1} / ${total}</span>
+          <span>${errors>0?`❌ ${errors}`:'✨'}</span>
+        </div>
+        <div style="height:10px;background:#eee;border-radius:10px;overflow:hidden">
+          <div style="height:100%;width:${progress*100}%;background:linear-gradient(90deg,${topic.color},${topic.color}99);border-radius:10px;transition:width .5s cubic-bezier(.34,1.56,.64,1)"></div>
+        </div>
+      </div>
+      <div id="qcard" style="flex:1;display:flex;flex-direction:column;justify-content:center;animation:fadeIn .3s ease">
+        ${body}
+      </div>`;
+  }
+
+  else if (state === "completed") {
+    const perfect = errors===0;
+    const stars = perfect ? 3 : errors<=2 ? 2 : 1;
+    content = `<div style="text-align:center;padding:30px 10px;animation:fadeIn .5s ease">
+      <div style="font-size:80px;margin-bottom:10px;animation:bounce 1s ease infinite">${perfect?'🏆':'🌟'}</div>
+      <h1 style="font-family:'Fredoka',sans-serif;font-size:32px;color:${perfect?'#27AE60':'#E67E22'};margin:0 0 10px">${perfect?'Perfekt!':'Gut gemacht!'}</h1>
+      <div style="font-size:36px;margin-bottom:10px">${"⭐".repeat(stars)}<span style="opacity:.2">${"⭐".repeat(3-stars)}</span></div>
+      <p style="font-family:'Nunito',sans-serif;font-size:18px;color:#555;margin:0 0 20px">${perfect?'Nessun errore! Sei un campione! 🦖':`Hai fatto ${errors} ${errors===1?'errore':'errori'}: le parole sbagliate le ripassiamo la prossima volta!`}</p>
+      <div style="display:inline-flex;align-items:center;gap:8px;background:#FFF3E0;border-radius:16px;padding:10px 18px;border:2px solid #FFB74D;margin-bottom:20px">
+        <span style="font-size:24px">🔥</span><span style="font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:#E65100">${streak} ${streak===1?'giorno':'giorni'} di allenamento</span>
+      </div>
+      <button id="btn-again" style="display:block;width:100%;max-width:320px;margin:0 auto 12px;padding:16px;border-radius:20px;background:linear-gradient(135deg,#00b894,#55efc4);color:white;font-size:20px;font-weight:600;box-shadow:0 4px 16px #00b89444;animation:pulse 2s ease infinite">Ancora ${topic.emoji} 💪</button>
+      <button id="btn-home" style="display:block;width:100%;max-width:320px;margin:0 auto;padding:14px;border-radius:20px;background:white;border:2px solid #e0e0e0;color:#666;font-size:18px;font-weight:600">Scegli un altro argomento</button>
+    </div>`;
+  }
+
+  app.innerHTML = `
+    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px">
+      ${header}
+      <div style="width:100%;max-width:500px;background:rgba(255,255,255,.92);border-radius:28px;padding:24px 20px;box-shadow:0 8px 40px rgba(0,0,0,.08);backdrop-filter:blur(12px);animation:popIn .5s cubic-bezier(.34,1.56,.64,1);flex:1;display:flex;flex-direction:column">
+        ${content}
+      </div>
+      <div style="margin-top:16px;font-size:13px;color:rgba(0,0,0,.3);font-weight:600;text-align:center">DinoTedesco 🦕 Ripasso per la verifica · <a href="index.html" style="color:inherit">DinoMatematica</a></div>
+    </div>`;
+
+  // --- eventi ---
+  document.querySelectorAll("[data-topic]").forEach(b => b.onclick = () => start(b.dataset.topic));
+  const bh = $("#btn-home"); if (bh) bh.onclick = () => { state="menu"; render(); };
+  const ba = $("#btn-again"); if (ba) ba.onclick = () => start(topic.id);
+  if (state === "playing") {
+    const q = queue[pos];
+    document.querySelectorAll("[data-opt]").forEach(b => b.onclick = () => {
+      const o = q.options[+b.dataset.opt];
+      b.style.outline = "4px solid #2E4057";
+      choose(o.value);
+    });
+    document.querySelectorAll("[data-w]").forEach(b => b.onclick = () => {
+      if (answered) return;
+      const i = +b.dataset.w;
+      if (selected.has(i)) selected.delete(i); else selected.add(i);
+      b.classList.toggle("sel");
+    });
+    const bc = $("#btn-check"); if (bc) bc.onclick = checkTap;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
