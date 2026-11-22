@@ -284,14 +284,33 @@ function currentStreak() {
 }
 
 // --- Voce tedesca ---
+// Usa SOLO una voce tedesca vera: se il dispositivo non ce l'ha, meglio stare zitti
+// che leggere il tedesco con la voce italiana.
+let deVoice = null, voicesChecked = false;
+function loadVoices() {
+  try {
+    const vs = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+    if (!vs.length) return;
+    voicesChecked = true;
+    const de = vs.filter(v => /^de([-_]|$)/i.test(v.lang||""));
+    deVoice = de.find(v=>/de[-_]DE/i.test(v.lang) && /google|anna|helena|petra|markus|yannick|katja|conrad/i.test(v.name))
+           || de.find(v=>/de[-_]DE/i.test(v.lang)) || de[0] || null;
+    if (state === "menu") render();
+  } catch(e) {}
+}
+if (window.speechSynthesis) {
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
+  setTimeout(loadVoices, 800);
+}
 function speak(text) {
   try {
     if (!window.speechSynthesis) return;
+    if (!deVoice) loadVoices();
+    if (!deVoice) return;
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = "de-DE"; u.rate = 0.85;
-    const v = speechSynthesis.getVoices().find(v=>v.lang && v.lang.startsWith("de"));
-    if (v) u.voice = v;
+    u.voice = deVoice; u.lang = deVoice.lang; u.rate = 0.85;
     speechSynthesis.speak(u);
   } catch(e) {}
 }
@@ -483,7 +502,7 @@ function showRule(key, solutionHtml, say, cb) {
       <div style="background:#f8f8f8;border-radius:14px;padding:14px 16px;font-family:'Fredoka',sans-serif;font-size:21px;font-weight:500;color:#333;text-align:center;margin-bottom:16px;line-height:1.5">
         <div style="font-family:'Nunito',sans-serif;font-size:13px;color:#999;font-weight:700;margin-bottom:4px">RISPOSTA GIUSTA</div>
         ${solutionHtml}
-        ${say?`<div style="margin-top:8px"><button id="rule-say" class="speak">🔊 Ascolta</button></div>`:""}
+        ${say&&deVoice?`<div style="margin-top:8px"><button id="rule-say" class="speak">🔊 Ascolta</button></div>`:""}
       </div>
       <p style="font-family:'Nunito',sans-serif;font-size:16px;line-height:1.6;color:#444;margin:0 0 20px">${r.text}</p>
       <button id="rule-ok" style="display:block;width:100%;padding:14px;border-radius:16px;background:${r.color};color:white;font-size:20px;font-weight:600;box-shadow:0 4px 12px ${r.color}66">Ho capito! ✨</button>
@@ -593,6 +612,7 @@ function render() {
         <h1 style="font-family:'Fredoka',sans-serif;font-size:26px;color:#2E4057;margin:6px 0 4px">Hallo Champion!</h1>
         <p style="font-size:16px;color:#666;margin:0">Cosa ripassiamo oggi per la verifica?</p>
         ${nMist?`<p style="font-size:13px;color:#E67E22;font-weight:700;margin:8px 0 0">🎯 ${nMist} parol${nMist===1?'a':'e'} da ripassare: usciranno più spesso!</p>`:""}
+        ${voicesChecked && !deVoice ? `<p style="font-size:12px;color:#999;font-weight:600;margin:8px 0 0">🔇 Su questo dispositivo non c'è una voce tedesca, quindi l'audio è spento. Per attivarlo installa la voce “Deutsch” nelle impostazioni di sintesi vocale.</p>` : ""}
       </div>
       ${TOPICS.map(t=>{
         const s = data.stars[t.id]||0;
